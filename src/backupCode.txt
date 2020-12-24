@@ -1,0 +1,139 @@
+mxgraph.mxConnectionHandler.prototype.connectImage = new mxgraph.mxImage(
+        connectorGif,
+        16,
+        16
+      );
+
+      mxgraph.mxEvent.disableContextMenu(editor.current);
+      const model = new mxgraph.mxGraphModel();
+      const graph = new mxgraph.mxGraph(editor.current, model);
+      graph.dropEnabled = true;
+
+      const toolbar = new mxgraph.mxToolbar(toolbarRef.current);
+      toolbar.enabled = false;
+
+      // Enables connect preview for the default edge style
+      graph.connectionHandler.createEdgeState = function () {
+        const edge = graph.createEdge(null, null, null, null, null);
+
+        return new mxgraph.mxCellState(
+          this.graph.view,
+          edge,
+          this.graph.getCellStyle(edge)
+        );
+      };
+
+      // Specifies the default edge style
+      graph.getStylesheet().getDefaultEdgeStyle()["edgeStyle"] =
+        "orthogonalEdgeStyle";
+
+      mxgraph.mxDragSource.getDropTarget = function (graph, x, y) {
+        let cell = graph.getCellAt(x, y);
+
+        if (!graph.isValidDropTarget(cell)) {
+          cell = null;
+        }
+
+        return cell;
+      };
+
+      graph.setConnectable(true);
+      graph.setMultigraph(false);
+
+      if (data) {
+        graph.getModel().beginUpdate();
+        try {
+          var xml =
+            '<root><mxCell id="2" value="Hello," vertex="1"><mxGeometry x="20" y="20" width="80" height="30" as="geometry"/></mxCell><mxCell id="3" value="World!" vertex="1"><mxGeometry x="200" y="150" width="80" height="30" as="geometry"/></mxCell><mxCell id="4" value="" edge="1" source="2" target="3"><mxGeometry relative="1" as="geometry"/></mxCell></root>';
+          var doc = mxgraph.mxUtils.parseXml(xml);
+          var codec = new mxgraph.mxCodec(doc);
+          var elt = doc.documentElement.firstChild;
+          var cells = [];
+          console.log("elt", elt);
+          while (elt != null) {
+            cells.push(codec.decodeCell(elt));
+            elt = elt.nextSibling;
+          }
+          console.log(cells);
+          graph.addCells(cells);
+
+          console.log("test", graph.getModel());
+        } finally {
+          console.log("run here");
+          graph.getModel().endUpdate();
+        }
+      }
+
+      // Stops editing on enter or escape keypress
+      const keyHandler = new mxgraph.mxKeyHandler(graph);
+
+      console.log("graph", graph);
+
+      keyHandler.bindKey(46, function () {
+        if (graph.isEnabled()) {
+          graph.removeCells();
+        }
+      });
+
+      const addVertex = function (icon, w, h, style) {
+        const vertex = new mxgraph.mxCell(
+          null,
+          new mxgraph.mxGeometry(0, 0, w, h),
+          style
+        );
+        vertex.setVertex(true);
+
+        addToolbarItem(graph, toolbar, vertex, icon);
+      };
+
+      addVertex(rectangleGif, 100, 40, "");
+      addVertex(ellipseGif, 80, 80, "shape=ellipse");
+      addVertex(triangleGif, 40, 40, "shape=triangle");
+      toolbar.addLine();
+
+      function addToolbarItem(graph, toolbar, prototype, image) {
+        // Function that is executed when the image is dropped on
+        // the graph. The cell argument points to the cell under
+        // the mousepointer if there is one.
+        const funct = function (graph, evt, cell) {
+          graph.stopEditing(false);
+
+          const pt = graph.getPointForEvent(evt);
+          const vertex = graph.getModel().cloneCell(prototype);
+          vertex.geometry.x = pt.x;
+          vertex.geometry.y = pt.y;
+
+          graph.setSelectionCells(graph.importCells([vertex], 0, 0, cell));
+        };
+
+        // Creates the image which is used as the drag icon (preview)
+        const img = toolbar.addMode(null, image, funct);
+        mxgraph.mxUtils.makeDraggable(img, graph, funct);
+      }
+
+      var button = mxgraph.mxUtils.button("Save", function (evt) {
+        console.log(evt);
+        const encoder = new mxgraph.mxCodec();
+        const result = encoder.encode(graph.model);
+        const xml = mxgraph.mxUtils.getXml(result);
+        console.log("xml", xml);
+      });
+
+      button.style.position = "absolute";
+      button.style.left = "2px";
+      button.style.top = "2px";
+
+      document.body.appendChild(button);
+
+      const style = graph.stylesheet.getDefaultEdgeStyle();
+      style[mxgraph.mxConstants.STYLE_ROUNDED] = true;
+      style[mxgraph.mxConstants.STYLE_EDGE] =
+        mxgraph.mxEdgeStyle.ElbowConnector;
+
+      console.log("style", style);
+
+      console.log("graph", graph);
+
+      console.log("model", model);
+
+      graph.edgeLabelsMovable = false;
